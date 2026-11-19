@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Build the 19 November 2026 world-news poster (entry.png, 1024x1024).
+"""Build the 19 November 2026 world-news poster v2 (entry.png, 1024x1024).
 
-Drawn programmatically with PIL so every word is crisp, real text.
+Premium newspaper front page, drawn programmatically with PIL so every
+word is crisp, real text. Two lead stories (GTA VI + ICJ verdict), a
+2x3 story grid, a Voyager band and an ALSO TODAY strip.
+
 Run:  python3 build_poster.py   ->  writes entry.png next to this script.
 """
 import os
@@ -24,15 +27,25 @@ BORDER = (214, 206, 190)
 
 PINK = (226, 20, 110)      # GTA VI
 TEAL = (0, 128, 128)       # ICJ
+EMERALD = (4, 120, 87)     # Summit
+DRED = (185, 28, 28)       # US-Iran
+PURPLE = (109, 40, 217)    # Crimea Bridge
 DBLUE = (30, 64, 175)      # Jeffries / US politics
 ORANGE = (217, 119, 6)     # Cyclone
-DRED = (185, 28, 28)       # US-Iran
-PURPLE = (109, 40, 217)    # Voyager
+SKY = (2, 132, 199)        # Anthropic IPO
 
 FB = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 SERIF = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
 RED = (198, 40, 40)
+
+# ---------------------------------------------------------------- ICJ verdict
+# Verdict read 19 Nov 2026 (~16:00-17:30 WIB): court found Myanmar committed
+# genocide against the Rohingya — first state ever found guilty (Al Jazeera
+# breaking; BBC/TBS live blog: ~10,000 violently killed, 815,000 targeted).
+ICJ_HEAD = "MYANMAR GUILTY OF GENOCIDE"
+ICJ_DECK = ("First state ever found guilty of genocide. "
+            "~10,000 Rohingya killed in 2017.")
 
 
 def font(path, size):
@@ -124,6 +137,44 @@ def icon_planet(d, x, y, s, col):
     d.ellipse([x + s * 0.78, y + s * 0.10, x + s * 0.86, y + s * 0.18], fill=WHITE)
 
 
+def icon_summit(d, x, y, s, col):
+    # three leaders at a table: heads + shoulders + table line
+    for i, fx in enumerate((0.20, 0.50, 0.80)):
+        cx = x + s * fx
+        cy = y + s * (0.30 if i != 1 else 0.22)
+        r = s * (0.11 if i != 1 else 0.13)
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=WHITE)
+        d.pieslice([cx - s * 0.14, cy + s * 0.12, cx + s * 0.14,
+                    cy + s * 0.44], 180, 360, fill=WHITE)
+    d.rectangle([x + s * 0.06, y + s * 0.74, x + s * 0.94, y + s * 0.82],
+                fill=WHITE)
+
+
+def icon_bridge(d, x, y, s, col):
+    # suspension bridge: deck, arch, pillars, suspenders
+    d.rectangle([x + s * 0.04, y + s * 0.62, x + s * 0.96, y + s * 0.70],
+                fill=WHITE)
+    d.arc([x + s * 0.10, y + s * 0.18, x + s * 0.90, y + s * 0.86],
+          start=180, end=360, fill=WHITE, width=5)
+    for px in (x + s * 0.16, x + s * 0.84):
+        d.rectangle([px - 3, y + s * 0.30, px + 3, y + s * 0.66], fill=WHITE)
+    for fx in (0.32, 0.50, 0.68):
+        d.line([x + s * fx, y + s * 0.30, x + s * fx, y + s * 0.62],
+               fill=WHITE, width=3)
+
+
+def icon_chart(d, x, y, s, col):
+    # ascending bars + trend arrow
+    bars = [(0.12, 0.42), (0.38, 0.62), (0.64, 0.82)]
+    for fx, fh in bars:
+        d.rectangle([x + s * fx, y + s * (0.92 - fh), x + s * (fx + 0.16),
+                     y + s * 0.92], fill=WHITE)
+    d.line([x + s * 0.08, y + s * 0.30, x + s * 0.92, y + s * 0.06],
+           fill=WHITE, width=5)
+    d.polygon([(x + s * 0.92, y + s * 0.06), (x + s * 0.74, y + s * 0.06),
+               (x + s * 0.92, y + s * 0.24)], fill=WHITE)
+
+
 img = Image.new("RGB", (W, H), IVORY)
 d = ImageDraw.Draw(img)
 
@@ -137,98 +188,120 @@ d.text((MARGIN, 54), "19 NOVEMBER 2026", font=f_date, fill=WHITE)
 d.text((W - MARGIN - d.textlength("THURSDAY", font=f_kicker), 16),
        "THURSDAY", font=f_kicker, fill=GOLD)
 
-# ---------- lead story: GTA VI ----------
-lead_y, lead_h = 170, 208
-d.rounded_rectangle([MARGIN, lead_y, W - MARGIN, lead_y + lead_h], radius=10,
-                    fill=CARD, outline=BORDER, width=2)
-# pink art block on the left
-d.rounded_rectangle([MARGIN, lead_y, MARGIN + 210, lead_y + lead_h], radius=10,
-                    fill=PINK)
-d.rounded_rectangle([MARGIN + 150, lead_y, MARGIN + 210, lead_y + lead_h],
-                    radius=0, fill=PINK)  # square off the right edge of the block
-icon_controller(d, MARGIN + 55, lead_y + 28, 100, PINK)
-gta_label = "GTA VI"
-d.text((MARGIN + (210 - d.textlength(gta_label, font=font(FB, 38))) / 2,
-        lead_y + 140), gta_label, font=font(FB, 38), fill=WHITE)
-lx = MARGIN + 236
-f_tag = font(FB, 22)
-d.text((lx, lead_y + 16), "CULTURE  •  GAMING", font=f_tag, fill=PINK)
-d.text((lx, lead_y + 46), "GTA VI IS HERE", font=font(SERIF, 58), fill=INK)
-deck = ("After a 13-year wait, Rockstar's blockbuster launches at "
-        "midnight in every time zone — critics score it 99/100.")
-f_deck = font(FR, 24)
-y = draw_lines(d, wrap(d, deck, f_deck, W - MARGIN - lx - 24),
-               lx, lead_y + 118, f_deck, (58, 62, 70), 32)
+# ---------- lead row: two heroes ----------
+def hero(x, y, w, h, col, icon, label, tag, head, deck, head_size):
+    d.rounded_rectangle([x, y, x + w, y + h], radius=10,
+                        fill=CARD, outline=BORDER, width=2)
+    bw = 148  # art block width
+    d.rounded_rectangle([x, y, x + bw, y + h], radius=10, fill=col)
+    d.rounded_rectangle([x + bw - 40, y, x + bw, y + h], radius=0, fill=col)
+    icon(d, x + 34, y + 22, 80, col)
+    lab = label
+    lf = font(FB, 30)
+    d.text((x + (bw - d.textlength(lab, font=lf)) / 2, y + h - 52),
+           lab, font=lf, fill=WHITE)
+    tx = x + bw + 18
+    tw = x + w - tx - 14
+    d.text((tx, y + 14), tag, font=font(FB, 19), fill=col)
+    f_head = font(SERIF, head_size)
+    hy = draw_lines(d, wrap(d, head, f_head, tw), tx, y + 40, f_head, INK,
+                    head_size + 6)
+    f_deck = font(FR, 18)
+    draw_lines(d, wrap(d, deck, f_deck, tw), tx, hy + 6, f_deck,
+               (58, 62, 70), 23)
 
-# ---------- story grid (2 x 2) ----------
+hero_y, hero_h = 168, 232
+hero_w = (W - 2 * MARGIN - 20) // 2
+hero(MARGIN, hero_y, hero_w, hero_h, PINK, icon_controller, "GTA VI",
+     "CULTURE  •  GAMING", "GTA VI IS HERE",
+     "After a 13-year wait, Rockstar's epic launches at midnight worldwide "
+     "— 99/100 on Metacritic, tying Ocarina of Time. 17.1m copies pre-sold "
+     "for $1.5bn.",
+     30)
+hero(MARGIN + hero_w + 20, hero_y, hero_w, hero_h, TEAL, icon_scales, "ICJ",
+     "WORLD  •  LAW", ICJ_HEAD, ICJ_DECK, 28)
+
+# ---------- story grid (2 x 3) ----------
 stories = [
-    ("WORLD  •  LAW", TEAL, icon_scales,
-     "World court rules on Rohingya genocide",
-     "ICJ delivers its verdict in Gambia v. Myanmar — the first "
-     "time it could hold a state guilty of genocide."),
+    ("DIPLOMACY  •  APEC", EMERALD, icon_summit,
+     "Trump, Xi and Putin meet in Shenzhen",
+     "First trilateral of the nuclear powers, on the APEC sidelines — arms, "
+     "Ukraine and Iran."),
+    ("MIDDLE EAST  •  CONFLICT", DRED, icon_rocket,
+     "Trump: Iran eyeing chemical, bio weapons",
+     "Trump says Tehran is 'looking at gases, looking at bio' — and vows to "
+     "'wipe them out'."),
+    ("EUROPE  •  WAR", PURPLE, icon_bridge,
+     "Crimea Bridge hit a third time in a week",
+     "Traffic halted again after the overnight strike; a 227-metre section "
+     "fell into the sea."),
     ("USA  •  POLITICS", DBLUE, icon_capitol,
      "Jeffries set to be first Black Speaker",
-     "House Democrats nominate Hakeem Jeffries; he takes the gavel "
+     "House Democrats nominate Hakeem Jeffries, 251–11; the full House votes "
      "on 3 January."),
     ("ASIA  •  WEATHER", ORANGE, icon_cyclone,
-     "Cyclone Akvan bears down on India",
-     "The severe storm nears the Andhra Pradesh and Odisha coasts; "
-     "states are on red alert."),
-    ("MIDDLE EAST  •  CONFLICT", DRED, icon_rocket,
-     "US–Iran strikes widen across the Gulf",
-     "Iran hits a US base in Kuwait and Bahrain again; the US struck "
-     "a missile site on Qeshm Island."),
+     "47,000 flee as Cyclone Akvan nears India",
+     "Odisha evacuates 47,000 before Friday landfall; the third severe "
+     "cyclone in a month."),
+    ("BUSINESS  •  TECH", SKY, icon_chart,
+     "Anthropic's $81bn IPO — the biggest ever",
+     "Claude's maker debuts on Nasdaq today as ANT at $83 a share; valued "
+     "at $1.5 trillion."),
 ]
 col_w = (W - 2 * MARGIN - 20) // 2
-row_h, row_gap = 176, 14
-grid_y0 = 390
+row_h, row_gap = 112, 10
+grid_y0 = 410
 for i, (tag, col, icon, head, body) in enumerate(stories):
     cx = MARGIN + (i % 2) * (col_w + 20)
     cy = grid_y0 + (i // 2) * (row_h + row_gap)
     d.rounded_rectangle([cx, cy, cx + col_w, cy + row_h], radius=10,
                         fill=CARD, outline=BORDER, width=2)
     # colour chip with icon
-    d.rounded_rectangle([cx, cy, cx + 96, cy + row_h], radius=10, fill=col)
-    d.rounded_rectangle([cx + 60, cy, cx + 96, cy + row_h], radius=0, fill=col)
-    icon(d, cx + 18, cy + 14, 60, col)
-    tx = cx + 112
-    d.text((tx, cy + 12), tag, font=font(FB, 19), fill=col)
-    f_head = font(FB, 26)
-    lines = wrap(d, head, f_head, col_w - 128)
-    y = draw_lines(d, lines, tx, cy + 38, f_head, INK, 30)
-    f_body = font(FR, 19)
-    draw_lines(d, wrap(d, body, f_body, col_w - 128), tx, y + 6, f_body,
-               (58, 62, 70), 23)
+    d.rounded_rectangle([cx, cy, cx + 84, cy + row_h], radius=10, fill=col)
+    d.rounded_rectangle([cx + 54, cy, cx + 84, cy + row_h], radius=0, fill=col)
+    icon(d, cx + 20, cy + 12, 44, col)
+    tx = cx + 100
+    d.text((tx, cy + 8), tag, font=font(FB, 14), fill=col)
+    f_head = font(FB, 20)
+    y = draw_lines(d, wrap(d, head, f_head, col_w - 116), tx, cy + 27,
+                   f_head, INK, 23)
+    f_body = font(FR, 14)
+    draw_lines(d, wrap(d, body, f_body, col_w - 116), tx, y + 3, f_body,
+               (58, 62, 70), 16)
 
 # ---------- Voyager band (full width) ----------
-voy_y, voy_h = 770, 108
+voy_y, voy_h = 776, 80
 d.rounded_rectangle([MARGIN, voy_y, W - MARGIN, voy_y + voy_h], radius=10,
                     fill=NAVY)
-icon_planet(d, MARGIN + 16, voy_y + 19, 70, NAVY)
-d.text((MARGIN + 104, voy_y + 12), "SPACE  •  SCIENCE", font=font(FB, 19),
+icon_planet(d, MARGIN + 14, voy_y + 12, 56, NAVY)
+d.text((MARGIN + 88, voy_y + 10), "SPACE  •  SCIENCE", font=font(FB, 16),
        fill=GOLD)
-d.text((MARGIN + 104, voy_y + 36), "Voyager 1 reaches a light-day from Earth",
-       font=font(FB, 29), fill=WHITE)
-d.text((MARGIN + 104, voy_y + 72),
-       "After nearly 50 years in space, NASA's probe crosses a record "
-       "distance.",
-       font=font(FR, 20), fill=(205, 214, 224))
+d.text((MARGIN + 88, voy_y + 30), "Voyager 1 is now a light-day from Earth",
+       font=font(FB, 26), fill=WHITE)
+d.text((MARGIN + 88, voy_y + 58),
+       "Signals take a full day to reach NASA's 1977 probe, 16 billion "
+       "miles out.",
+       font=font(FR, 17), fill=(205, 214, 224))
 
 # ---------- also today ----------
-also_y = 890
-d.text((MARGIN, also_y), "ALSO TODAY", font=font(FB, 22), fill=INK)
-d.line([MARGIN + 158, also_y + 12, W - MARGIN, also_y + 12], fill=BORDER, width=2)
-d.text((MARGIN, also_y + 28), "EU proposes a €45bn loan for Ukraine",
-       font=font(FR, 21), fill=(58, 62, 70))
-d.text((MARGIN, also_y + 54),
-       "Pew: Islam set to be the world's largest faith by 2035",
-       font=font(FR, 21), fill=(58, 62, 70))
+also_y = 868
+d.text((MARGIN, also_y), "ALSO TODAY", font=font(FB, 20), fill=INK)
+d.line([MARGIN + 158, also_y + 11, W - MARGIN, also_y + 11], fill=BORDER, width=2)
+also_items = [
+    "EU proposes a €45bn loan for Ukraine",
+    "EU–Indonesia trade pact approved — duties cut on 90% of goods",
+    "Pew: Islam set to be the world's largest faith by 2035",
+]
+y = also_y + 26
+for item in also_items:
+    d.text((MARGIN, y), item, font=font(FR, 19), fill=(58, 62, 70))
+    y += 24
 
 # ---------- footer ----------
-d.text((MARGIN, 980), "World news of 19 November 2026",
+d.text((MARGIN, 978), "World news of 19 November 2026",
        font=font(FB, 20), fill=GREY)
 d.text((W - MARGIN - d.textlength("Reports published 19 Nov 2026",
-                                  font=font(FR, 20)), 980),
+                                  font=font(FR, 20)), 978),
        "Reports published 19 Nov 2026",
        font=font(FR, 20), fill=GREY)
 
